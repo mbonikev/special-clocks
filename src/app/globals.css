@@ -208,20 +208,26 @@ body {
 }
 
 /* ============================================================
-   SCROLLBAR
+   OVERLAY SCROLLBARS THEME
    ============================================================ */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Hide native scrollbars — OverlayScrollbars handles rendering */
+* {
+  scrollbar-width: none;
 }
-::-webkit-scrollbar-track {
-  background: var(--bg-muted);
+*::-webkit-scrollbar {
+  display: none;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+
+/* Thumb color pulled from CSS vars */
+.os-scrollbar-handle {
+  background: var(--border-strong) !important;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-subtle);
+.os-scrollbar-handle:hover {
+  background: var(--text-subtle) !important;
+}
+.os-scrollbar {
+  --os-size: 4px;
+  --os-padding-perpendicular: 0px;
 }
 
 /* ============================================================

@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
+import { OverlayScrollbarsComponent } from "overlayscrollbars-react";
+import "overlayscrollbars/overlayscrollbars.css";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -9,18 +11,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLogin) {
     return (
-      <main className="flex-1 overflow-y-auto bg-[var(--bg)]">
+      <OverlayScrollbarsComponent
+        element="main"
+        className="flex-1 bg-[var(--bg)]"
+        options={{ scrollbars: { autoHide: "scroll", theme: "os-theme-dark" } }}
+        defer
+      >
         {children}
-      </main>
+      </OverlayScrollbarsComponent>
     );
   }
 
   return (
     <>
       <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-[var(--bg)]">
+      <OverlayScrollbarsComponent
+        element="main"
+        className="flex-1 bg-[var(--bg)]"
+        options={{ scrollbars: { autoHide: "scroll", theme: "os-theme-dark" } }}
+        defer
+      >
         {children}
-      </main>
+      </OverlayScrollbarsComponent>
     </>
   );
 }
