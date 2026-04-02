@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ThemeId, FontId } from "@/lib/themes";
 
-interface Task {
+export interface Task {
   id: string;
   text: string;
   done: boolean;
@@ -11,14 +11,14 @@ interface Task {
   pomodorosDone: number;
 }
 
-interface Note {
+export interface Note {
   id: string;
   title: string;
   content: string;
   updatedAt: number;
 }
 
-interface PomodoroStats {
+export interface PomodoroStats {
   date: string;
   focusSessions: number;
   shortBreaks: number;
@@ -27,13 +27,22 @@ interface PomodoroStats {
 }
 
 interface AppState {
-  /* Theme */
-  themeId: ThemeId;
+  /* Auth */
+  userId: string | null;
+  userEmail: string | null;
+  setUser: (id: string | null, email: string | null) => void;
+
+  /* Theme — separate light/dark so system auto-switch works */
+  lightThemeId: ThemeId;
+  darkThemeId: ThemeId;
   fontId: FontId;
   systemTheme: "light" | "dark";
-  setThemeId: (id: ThemeId) => void;
+  setLightTheme: (id: ThemeId) => void;
+  setDarkTheme: (id: ThemeId) => void;
   setFontId: (id: FontId) => void;
   setSystemTheme: (mode: "light" | "dark") => void;
+  /** Resolves to lightThemeId or darkThemeId based on systemTheme */
+  activeThemeId: () => ThemeId;
 
   /* Timer settings */
   focusDuration: number;
@@ -42,27 +51,42 @@ interface AppState {
   longBreakInterval: number;
   autoStartBreaks: boolean;
   autoStartPomodoros: boolean;
-  setTimerSettings: (s: Partial<Pick<AppState, "focusDuration" | "shortBreakDuration" | "longBreakDuration" | "longBreakInterval" | "autoStartBreaks" | "autoStartPomodoros">>) => void;
+  setTimerSettings: (
+    s: Partial<
+      Pick<
+        AppState,
+        | "focusDuration"
+        | "shortBreakDuration"
+        | "longBreakDuration"
+        | "longBreakInterval"
+        | "autoStartBreaks"
+        | "autoStartPomodoros"
+      >
+    >
+  ) => void;
 
   /* Tasks */
   tasks: Task[];
   activeTaskId: string | null;
-  addTask: (text: string, estimate?: number) => void;
+  addTask: (text: string, estimate?: number) => string;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
   setActiveTask: (id: string | null) => void;
   incrementTaskPomodoro: (id: string) => void;
+  setTasks: (tasks: Task[]) => void;
 
   /* Notes */
   notes: Note[];
   addNote: () => string;
   updateNote: (id: string, patch: Partial<Note>) => void;
   deleteNote: (id: string) => void;
+  setNotes: (notes: Note[]) => void;
 
   /* Stats */
   stats: PomodoroStats[];
   recordSession: (type: "focus" | "short" | "long", minutes: number) => void;
+  setStats: (stats: PomodoroStats[]) => void;
 
   /* Sound */
   ambientSound: string | null;
@@ -70,7 +94,7 @@ interface AppState {
   setAmbientSound: (id: string | null) => void;
   setSoundVolume: (v: number) => void;
 
-  /* Completed pomodoro count today */
+  /* Daily pomodoro count */
   dailyPomodoros: number;
   incrementDailyPomodoros: () => void;
   resetDailyPomodoros: () => void;
@@ -79,13 +103,24 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      /* Auth */
+      userId: null,
+      userEmail: null,
+      setUser: (id, email) => set({ userId: id, userEmail: email }),
+
       /* Theme */
-      themeId: "dark-default",
+      lightThemeId: "light-default",
+      darkThemeId: "dark-default",
       fontId: "inter",
       systemTheme: "dark",
-      setThemeId: (id) => set({ themeId: id }),
+      setLightTheme: (id) => set({ lightThemeId: id }),
+      setDarkTheme: (id) => set({ darkThemeId: id }),
       setFontId: (id) => set({ fontId: id }),
       setSystemTheme: (mode) => set({ systemTheme: mode }),
+      activeThemeId: () => {
+        const s = get();
+        return s.systemTheme === "dark" ? s.darkThemeId : s.lightThemeId;
+      },
 
       /* Timer */
       focusDuration: 25 * 60,
@@ -99,12 +134,13 @@ export const useAppStore = create<AppState>()(
       /* Tasks */
       tasks: [],
       activeTaskId: null,
-      addTask: (text, estimate = 1) =>
+      addTask: (text, estimate = 1) => {
+        const id = crypto.randomUUID();
         set((s) => ({
           tasks: [
             ...s.tasks,
             {
-              id: crypto.randomUUID(),
+              id,
               text,
               done: false,
               createdAt: Date.now(),
@@ -112,7 +148,9 @@ export const useAppStore = create<AppState>()(
               pomodorosDone: 0,
             },
           ],
-        })),
+        }));
+        return id;
+      },
       toggleTask: (id) =>
         set((s) => ({
           tasks: s.tasks.map((t) =>
@@ -132,6 +170,7 @@ export const useAppStore = create<AppState>()(
             t.id === id ? { ...t, pomodorosDone: t.pomodorosDone + 1 } : t
           ),
         })),
+      setTasks: (tasks) => set({ tasks }),
 
       /* Notes */
       notes: [],
@@ -153,6 +192,7 @@ export const useAppStore = create<AppState>()(
         })),
       deleteNote: (id) =>
         set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
+      setNotes: (notes) => set({ notes }),
 
       /* Stats */
       stats: [],
@@ -166,15 +206,11 @@ export const useAppStore = create<AppState>()(
                 d.date === today
                   ? {
                       ...d,
-                      focusSessions:
-                        d.focusSessions + (type === "focus" ? 1 : 0),
-                      shortBreaks:
-                        d.shortBreaks + (type === "short" ? 1 : 0),
-                      longBreaks:
-                        d.longBreaks + (type === "long" ? 1 : 0),
+                      focusSessions: d.focusSessions + (type === "focus" ? 1 : 0),
+                      shortBreaks: d.shortBreaks + (type === "short" ? 1 : 0),
+                      longBreaks: d.longBreaks + (type === "long" ? 1 : 0),
                       totalFocusMinutes:
-                        d.totalFocusMinutes +
-                        (type === "focus" ? minutes : 0),
+                        d.totalFocusMinutes + (type === "focus" ? minutes : 0),
                     }
                   : d
               ),
@@ -194,6 +230,7 @@ export const useAppStore = create<AppState>()(
           };
         });
       },
+      setStats: (stats) => set({ stats }),
 
       /* Sound */
       ambientSound: null,
