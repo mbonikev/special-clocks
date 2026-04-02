@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Volume2, VolumeX, Square } from "lucide-react";
 import { useAppStore } from "@/store/app-store";
+import { usePreferencesSync } from "@/hooks/use-db-sync";
 import { PageShell } from "@/components/page-shell";
 
 type NoiseType = "white" | "pink" | "brown";
@@ -66,6 +67,7 @@ function createNoiseBuffer(ctx: AudioContext, type: string): AudioBufferSourceNo
 }
 
 export default function SoundsPage() {
+  usePreferencesSync();
   const { ambientSound, soundVolume, setAmbientSound, setSoundVolume } = useAppStore();
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
@@ -161,7 +163,8 @@ export default function SoundsPage() {
 
       {/* Sound Grid */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-2 gap-3 max-w-lg">
+        <div className="mx-auto w-full max-w-lg">
+        <div className="grid grid-cols-2 gap-3">
           {sounds.map((sound) => {
             const active = ambientSound === sound.id && started;
             return (
@@ -225,7 +228,7 @@ export default function SoundsPage() {
         </div>
 
         {/* Volume */}
-        <div className="mt-6 max-w-lg">
+        <div className="mt-6">
           <div
             className="border p-4"
             style={{ borderColor: "var(--border)", background: "var(--surface)" }}
@@ -252,6 +255,7 @@ export default function SoundsPage() {
             </p>
           </div>
         </div>
+        </div>{/* max-w wrapper */}
       </div>
     </PageShell>
   );
