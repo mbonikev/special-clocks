@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sun, Moon, Maximize2, Minimize2, LayoutGrid, Globe, PaintBucket, PaintRoller, Settings } from "lucide-react";
+import { Sun, Moon, Maximize2, Minimize2, Globe, Settings, Paintbrush } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useClockTime } from "@/hooks/useClockTime";
 import { ClockMinimal } from "@/components/clocks/ClockMinimal";
@@ -134,7 +134,7 @@ export default function Page() {
         </ToolButton>
 
         <ToolButton title="Themes" onClick={() => setShowLayouts(true)}>
-          <PaintRoller size={24} />
+          <Paintbrush size={24} />
         </ToolButton>
 
         <ToolButton title="Change timezone" onClick={() => setShowTimezone(true)}>
