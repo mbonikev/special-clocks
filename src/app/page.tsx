@@ -17,7 +17,8 @@ export default function Page() {
   const [showLayouts, setShowLayouts] = useState(false);
   const [showTimezone, setShowTimezone] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isApiFullscreen, setIsApiFullscreen] = useState(false);
+  const [isF11Fullscreen, setIsF11Fullscreen] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,19 +29,25 @@ export default function Page() {
     document.documentElement.dataset.clock = settings.clockLayout;
   }, [settings.theme, settings.clockLayout, mounted]);
 
-  // Track fullscreen state — covers both Fullscreen API and F11 browser fullscreen
+  // Track fullscreen state — API fullscreen and F11 fullscreen separately
   useEffect(() => {
-    const check = () => {
-      const apiFullscreen = !!document.fullscreenElement;
-      const f11Fullscreen = window.innerHeight >= screen.height;
-      setIsFullscreen(apiFullscreen || f11Fullscreen);
+    let resizeDebounce: ReturnType<typeof setTimeout>;
+    const onFullscreenChange = () => setIsApiFullscreen(!!document.fullscreenElement);
+    const onResize = () => {
+      // Debounce so intermediate resize events during F11 animation don't flicker the state
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(() => {
+        setIsF11Fullscreen(window.innerHeight >= screen.height);
+      }, 150);
     };
-    check();
-    document.addEventListener("fullscreenchange", check);
-    window.addEventListener("resize", check);
+    onFullscreenChange();
+    setIsF11Fullscreen(window.innerHeight >= screen.height);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    window.addEventListener("resize", onResize);
     return () => {
-      document.removeEventListener("fullscreenchange", check);
-      window.removeEventListener("resize", check);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeDebounce);
     };
   }, []);
 
@@ -49,7 +56,7 @@ export default function Page() {
     const toolbar = toolbarRef.current;
     if (!toolbar) return;
 
-    if (!settings.ghostMode || !isFullscreen) {
+    if (!settings.ghostMode || (!isApiFullscreen && !isF11Fullscreen)) {
       toolbar.style.opacity = "1";
       toolbar.style.pointerEvents = "auto";
       if (idleTimer.current) clearTimeout(idleTimer.current);
@@ -76,7 +83,7 @@ export default function Page() {
       window.removeEventListener("mousedown", show);
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
-  }, [settings.ghostMode, isFullscreen]);
+  }, [settings.ghostMode, isApiFullscreen, isF11Fullscreen]);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -120,10 +127,10 @@ export default function Page() {
         </ToolButton>
 
         <ToolButton
-          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          title={isApiFullscreen ? "Exit fullscreen" : "Fullscreen"}
           onClick={toggleFullscreen}
         >
-          {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
+          {isApiFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
         </ToolButton>
 
         <ToolButton title="Themes" onClick={() => setShowLayouts(true)}>

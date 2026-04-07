@@ -26,12 +26,13 @@ export function ClockMinimal({ clock, preview, showDate = true }: Props) {
       {/* Time */}
       <div
         style={{
-          fontFamily: "var(--font-mono, monospace)",
+          fontFamily: "var(--font-sp-display, system-ui)",
           fontSize: "min(26cqw, 28cqh)",
-          fontWeight:400,
-          letterSpacing: "-0.04em",
+          fontWeight:600,
+          letterSpacing: "0em",
           lineHeight: 1,
           color: "var(--ck-text)",
+          fontVariantNumeric: "tabular-nums",
         }}
       >
         {clock.hours}:{clock.minutes}
@@ -42,8 +43,8 @@ export function ClockMinimal({ clock, preview, showDate = true }: Props) {
       {!preview && showDate && (
         <div
           style={{
-            fontFamily: "var(--font-inter, system-ui)",
-            fontSize: "clamp(11px, min(2cqw, 1.8cqh), 18px)",
+            fontFamily: "var(--font-sp-display, system-ui)",
+            fontSize: "clamp(14px, min(2.6cqw, 2.5cqh), 32px)",
             color: "var(--ck-text)",
             opacity: 0.55,
             letterSpacing: "0.22em",
